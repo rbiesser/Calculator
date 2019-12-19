@@ -52,7 +52,14 @@ namespace Calculator
 {
     public partial class StandardCalculator : Form
     {
+        
 
+        private bool isNewOperation = true;
+        private bool isNewOperand = true;
+
+        /*
+         * constructor
+         */
         public StandardCalculator()
         {
             InitializeComponent();
@@ -268,13 +275,51 @@ namespace Calculator
             return result.ToString();
         }
 
-        /*
-         * Set KeyPreview on the Form = true
-         * Set KeyPress Event to StandardCalculator_KeyPress
-         * https://stackoverflow.com/questions/19905555/c-sharp-key-pressed-listener-in-a-windows-forms-usercontrol
-         */
+        private void updateHistory() {
+           // tbHistory.Text += "\n" + lblOperation.Text;
+           lvHistory.Items.Add(lblOperation.Text + lblOperand.Text);
+        }
+
+        /***********************************************************
+         * 
+         * ui button click events
+         *
+         ***********************************************************/
+        private void btnEquals_Click(object sender, EventArgs e)
+        {
+            // updateOperation handles any necessary logic
+            updateOperation(Unicode.EQUALS_SIGN);
+
+            // update history handles saving to file
+            updateHistory();
+        }
+
+        private void btnClear_Click(object sender, EventArgs e)
+        {
+            if (btnClear.Text == "C") 
+            {
+                lblOperation.Text = ""; // clear the current operation
+                                        // lblResult should already be 0
+                isNewOperation = true;
+            }
+            else
+            {
+                lblOperand.Text = "0";
+                btnClear.Text = "C"; // reset clear button
+            }
+
+            isNewOperand = true;
+            lblOperand.Focus();
+        }
+
         private void StandardCalculator_KeyPress(object sender, KeyPressEventArgs e)
         {
+            /*
+             * Set KeyPreview on the Form = true
+             * Set KeyPress Event to StandardCalculator_KeyPress
+             * https://stackoverflow.com/questions/19905555/c-sharp-key-pressed-listener-in-a-windows-forms-usercontrol
+             */
+
             // array of allowed math operations from KeyPress, all others ignored
             char[] operators = { '*', '/', '+', '-', '=' };
 
@@ -314,42 +359,35 @@ namespace Calculator
                 Debug.WriteLine(e.KeyChar.ToString());
             }
         }
-
-        private void btnClear_Click(object sender, EventArgs e)
+        
+        private void lblHistory_Click(object sender, EventArgs e)
         {
-            if (btnClear.Text == "C") 
-            {
-                lblOperation.Text = ""; // clear the current operation
-                                        // lblResult should already be 0
-                isNewOperation = true;
-            }
-            else
-            {
-                lblOperand.Text = "0";
-                // result = 0.00;
-                btnClear.Text = "C"; // reset clear button
-            }
+            pHistory.Visible = true;
+        }
 
-            isNewOperand = true;
+        private void lblMemory_Click(object sender, EventArgs e)
+        {
+            pHistory.Visible = false;
+        }
+
+        private void btnClearHistory_Click(object sender, EventArgs e)
+        {
+            lvHistory.Items.Clear();
             lblOperand.Focus();
         }
 
-        private void updateHistory() {
-           // tbHistory.Text += "\n" + lblOperation.Text;
-           lvHistory.Items.Add(lblOperation.Text + lblOperand.Text);
-        }
-
-        /*
-        * Follow order of operations or update as requestd?
-        */
-        private void btnEquals_Click(object sender, EventArgs e)
+        private void lvHistory_Click(object sender, EventArgs e)
         {
-            // updateOperation handles any necessary logic
-            updateOperation(Unicode.EQUALS_SIGN);
+            Debug.WriteLine(sender.ToString());
+            Debug.WriteLine(e.ToString());
 
-            // update history handles saving to file
-            updateHistory();
         }
+
+        /***********************************************************
+         * 
+         * digit button click events
+         *
+         ***********************************************************/
 
         private void btn0_Click(object sender, EventArgs e)
         {
@@ -411,6 +449,12 @@ namespace Calculator
             lblOperand.Focus();
         }
 
+
+        /***********************************************************
+         * 
+         * operator button click events
+         *
+         ***********************************************************/
         private void btnAdd_Click(object sender, EventArgs e)
         {
             updateOperation(Unicode.PLUS_SIGN);
@@ -445,29 +489,6 @@ namespace Calculator
         {
             updateOperand(Unicode.PLUS_MINUS_SIGN);
             lblOperand.Focus();
-        }
-
-        private void lblHistory_Click(object sender, EventArgs e)
-        {
-            pHistory.Visible = true;
-        }
-
-        private void lblMemory_Click(object sender, EventArgs e)
-        {
-            pHistory.Visible = false;
-        }
-
-        private void btnClearHistory_Click(object sender, EventArgs e)
-        {
-            lvHistory.Items.Clear();
-            lblOperand.Focus();
-        }
-
-        private void lvHistory_Click(object sender, EventArgs e)
-        {
-            Debug.WriteLine(sender.ToString());
-            Debug.WriteLine(e.ToString());
-
         }
     }
 }

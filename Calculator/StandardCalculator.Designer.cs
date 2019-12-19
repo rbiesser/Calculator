@@ -438,10 +438,6 @@
         private System.Windows.Forms.Label lblMemory;
         private System.Windows.Forms.Button btnClearHistory;
         private System.Windows.Forms.ListView lvHistory;
-
-
-        private bool isNewOperation = true;
-        private bool isNewOperand = true;
     }
 }
 
