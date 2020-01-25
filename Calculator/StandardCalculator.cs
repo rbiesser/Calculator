@@ -6,6 +6,9 @@
  * Implementation of a basic calculator using .NET Framework for Window Forms
  *
  * Version 1.0.0: 12/15/2019
+ * Version 1.1.0: 1/24/2020
+ *      - Removed/Hid History feature
+ *      - fixed Multi-multiplication operation
  *
  * Required Features:
  * - Contain a logo
@@ -19,6 +22,10 @@
  * - Contain a clear and clear all button
  * - Display window updates with key presses and calculations
  * 
+ * We determined these functions were not necessary,
+ * Removed Features:
+ * - Retain the last calculation after window closes
+ * - Have a memory so user can store and recall values
  *
  * Additional Features:
  * - Can enter negative values
@@ -27,17 +34,20 @@
  * 
  *
  * TODO:
- * - Test decimal places in results
  * - Retain the last calculation - implement with the History feature (Required)
  * - Memory feature (Required), will be using memory and history
  * - History
  *      - clear history is specific to history
  *      - explore visual elements to be used for adding and selecting history items
+ * - I'm not happy with the current History feature, so it is hidden until further testing.
+ *      - Expand the window size to the right.
+ *      
+ * - Need to implement Unit Testing for CI/CD
  *
- * - !!! multiple muliplication doesn't work with current zero addition replacement
  */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -53,7 +63,7 @@ namespace Calculator
     public partial class StandardCalculator : Form
     {
         
-
+        // private variables used to track the state of the input
         private bool isNewOperation = true;
         private bool isNewOperand = true;
 
@@ -136,7 +146,7 @@ namespace Calculator
             btnClear.Text = "CE";
         }
 
-        /*
+        /**
          * Should only be called by an operator button
          * https://www.computerhope.com/jargon/o/operand.htm
          */
@@ -164,10 +174,13 @@ namespace Calculator
 
             // parse the current operation and update the operand/result text
             // trim off the last operation to make the operands even
+            // Length-3 is the two extra spaces and the operation
             lblOperand.Text = calculate(lblOperation.Text.Substring(0, lblOperation.Text.Length-3));
         }
 
-        /*
+        /**
+         * The current calculation is made for every change to an operation or an equal operation
+         *
          * Performs the calculation in the operations list following proper order of operations
          *
          *  2 + 2 * 3 + 2 * 10 = 28 , incorrect: 140
@@ -179,105 +192,111 @@ namespace Calculator
          *  operands and operations
          *
          *  2 * 2 * 2 * 2 * 2 = 32
+         * 
+         * When a calculation returns a negative number it is displayed with a minus sign and no space,
+         * allowing it to be interpreted correctly if the result is used for the next calculation.
+         *
+         * There may be many algorithms to perform a calculation and some may be proven to be easier to 
+         * extend when adding new operations. This current method runs through the entire operation list
+         * twice. 
          */
-        private string calculate(string curOperation)
+        private string calculate( string curOperation) 
         {
-            // parse operation list to get proper order of operations
-            // https://www.mathsisfun.com/operation-order-bodmas.html
             char[] operatorsMD = {Unicode.MULTIPLICATION_SIGN, Unicode.DIVISION_SIGN};
             char[] operatorsAS = {Unicode.PLUS_SIGN, Unicode.MINUS_SIGN};
 
+            
             double result = 0; // the result is returned as a string
 
-            Debug.WriteLine("");
-            Debug.WriteLine(curOperation + " ");
-
-            // split by space to get each operand and operation
-            string[] operationStack = curOperation.Split(' ');
-
-            // you need 2 operands for an operation
-            if (operationStack.Length > 2) {
-                // reduce all calculations down to addition or subtraction
-                // need to look for each operator precedence in order
-                // first is multiplication and division
-                for (int i = 0; i < operationStack.Length-1; i++) { // ignore the latest operation
-
-                    Debug.WriteLine(operationStack[i+1]);
-
-                    // multiplication and division have the same precedence
-                    if (operationStack[i+1].IndexOfAny(operatorsMD) > -1)
+            // use ArrayList so you can use the RemoveAt method
+            ArrayList operations = new ArrayList(curOperation.Split(' '));
+            
+            // need at least two operands to make an operation
+            if (operations.Count > 2) 
+            {
+                // loop through the entire operation
+                for(int i = 0; i < operations.Count - 1; i++)
+                {
+                    // mulitplication and division are at the same precedence
+                    if ( operations[i].ToString() == Unicode.MULTIPLICATION_SIGN.ToString()) 
                     {
-                        if (Char.Parse(operationStack[i+1]) == Unicode.MULTIPLICATION_SIGN)
-                        {
-                            result = double.Parse(operationStack[i]) * double.Parse(operationStack[i + 2]);
-                            operationStack[i] = result.ToString();
-                            operationStack[i+1] = Unicode.PLUS_SIGN.ToString();
-                            operationStack[i+2] = "0"; // replace with add by zero
-                            i+=2;
-                            
-                            Debug.WriteLine(result);
-                        }
+                        // multiply the left operand by the right operand
+                        // and store back to left operand
+                        result = Double.Parse(operations[i-1].ToString()) * 
+                                    Double.Parse(operations[i+1].ToString());
+                        operations[i-1] = result.ToString();
+                        
+                        operations.RemoveAt(i + 1); // delete the right operand and previous operator
+                        operations.RemoveAt(i);
 
-                        else if (Char.Parse(operationStack[i+1]) == Unicode.DIVISION_SIGN)
-                        {
-                            // cannot divide by zero
-                            try {
-                                result = double.Parse(operationStack[i]) / double.Parse(operationStack[i + 2]);
-                                operationStack[i] = result.ToString();
-                                operationStack[i+1] = Unicode.PLUS_SIGN.ToString();
-                                operationStack[i+2] = "0"; // replace with add by zero
-                                i+=2;
-                                
-                                Debug.WriteLine(result);
-                            }
-                            catch (DivideByZeroException) {
-                                // double actually handles divide by zero with infinity
-                                // int throws cannot divide by zero exception
-                                return "Cannot divide by zero";
-                            }
+                        i--; // check the last index again
+                    }
+                    else if ( operations[i].ToString() == Unicode.DIVISION_SIGN.ToString()) 
+                    {
+                        // cannot divide by zero
+                        try {
+                            // multiply the left operand by the right operand
+                            // and store back to left operand
+                            result = Double.Parse(operations[i-1].ToString()) / 
+                                        Double.Parse(operations[i+1].ToString());
+                            operations[i-1] = result.ToString();
+                            
+                            operations.RemoveAt(i + 1); // delete the right operand and previous operator
+                            operations.RemoveAt(i);
+
+                            i--; // check the last index again
+                        }
+                        catch (DivideByZeroException) {
+                            // double actually handles divide by zero with infinity
+                            // int throws cannot divide by zero exception
+                            return "Cannot divide by zero";
                         }
                     }
-                } // end multiplication/division for loop
-    
-                result = 0; // reset result
-                
-                // then addition and subtraction
-                for (int i = 0; i < operationStack.Length-1; i++) { // ignore the latest operation
+                }
 
-                    Debug.WriteLine(operationStack[i+1]);
-
-                    // addition and subtraction have the same precedence
-                    if (operationStack[i+1].IndexOfAny(operatorsAS) > -1)
+                // the operations list should now only contain addition or subtraction operations
+                for(int i = 0; i < operations.Count - 1; i++)
+                {
+                    // addition and subtraction are at the same precedence
+                    if ( operations[i].ToString() == Unicode.PLUS_SIGN.ToString()) 
                     {
-                        if (Char.Parse(operationStack[i+1]) == Unicode.PLUS_SIGN)
-                        {
-                            result += double.Parse(operationStack[i]) + double.Parse(operationStack[i + 2]);
-                            i+=2;
-                            
-                            Debug.WriteLine(result);
-                        }
+                        // add the left operand and the right operand
+                        // and store back to left operand
+                        result = Double.Parse(operations[i-1].ToString()) +
+                                    Double.Parse(operations[i+1].ToString());
+                        operations[i-1] = result.ToString();
+                        
+                        operations.RemoveAt(i + 1); // delete the right operand and previous operator
+                        operations.RemoveAt(i);
 
-                        else if (Char.Parse(operationStack[i+1]) == Unicode.MINUS_SIGN)
-                        {
-                            result += double.Parse(operationStack[i]) - double.Parse(operationStack[i + 2]);
-                            i+=2;
-                            
-                            Debug.WriteLine(result);
-                        }
+                        i--; // check the last index again
                     }
-                } // end addition/subtraction for loop
+                    else if ( operations[i].ToString() == Unicode.MINUS_SIGN.ToString()) 
+                    {
+                        // subtract the right operand from the left operand
+                        // and store back to left operand
+                        result = Double.Parse(operations[i-1].ToString()) -
+                                    Double.Parse(operations[i+1].ToString());
+                        operations[i-1] = result.ToString();
+                        
+                        operations.RemoveAt(i + 1); // delete the right operand and previous operator
+                        operations.RemoveAt(i);
+
+                        i--; // check the last index again
+                    }
+                }
             }
             else {
-                // there is only one operand, just return the one operand
-                result = double.Parse(operationStack[operationStack.Length-1]);
+                result = Double.Parse(operations[0].ToString());
             }
 
             return result.ToString();
         }
 
         private void updateHistory() {
-           // tbHistory.Text += "\n" + lblOperation.Text;
-           lvHistory.Items.Add(lblOperation.Text + lblOperand.Text);
+            // tbHistory.Text += "\n" + lblOperation.Text;
+            lvHistory.Items.Add(lblOperation.Text + lblOperand.Text);
+
         }
 
         /***********************************************************
@@ -312,6 +331,9 @@ namespace Calculator
             lblOperand.Focus();
         }
 
+        /** 
+         * Keyboard entry
+         */
         private void StandardCalculator_KeyPress(object sender, KeyPressEventArgs e)
         {
             /*
@@ -386,6 +408,7 @@ namespace Calculator
         /***********************************************************
          * 
          * digit button click events
+         * lblOperand.Focus(); resets the focus to the Equals button
          *
          ***********************************************************/
 
@@ -453,6 +476,7 @@ namespace Calculator
         /***********************************************************
          * 
          * operator button click events
+         * lblOperand.Focus(); resets the focus to the Equals button
          *
          ***********************************************************/
         private void btnAdd_Click(object sender, EventArgs e)

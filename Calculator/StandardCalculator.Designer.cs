@@ -103,10 +103,14 @@
             // 
             // lvHistory
             // 
+            this.lvHistory.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lvHistory.FullRowSelect = true;
             this.lvHistory.HideSelection = false;
             this.lvHistory.Location = new System.Drawing.Point(13, 11);
+            this.lvHistory.MultiSelect = false;
             this.lvHistory.Name = "lvHistory";
+            this.lvHistory.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.lvHistory.RightToLeftLayout = true;
             this.lvHistory.Size = new System.Drawing.Size(318, 383);
             this.lvHistory.TabIndex = 2;
             this.lvHistory.TabStop = false;
@@ -369,7 +373,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnClear;
-            this.ClientSize = new System.Drawing.Size(884, 573);
+            this.ClientSize = new System.Drawing.Size(527, 573);
             this.Controls.Add(this.pHistory);
             this.Controls.Add(this.lblOperation);
             this.Controls.Add(this.lblMemory);
